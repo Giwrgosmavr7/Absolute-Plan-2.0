@@ -44,7 +44,7 @@
         <button onclick="switchTab('courseDetails')" id="tab-courseDetails" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>Μαθήματα & Σημειώσεις</button>
     </div>
 
-    <!-- TABS (όπως ήταν πριν, απλά περιμένουν τα δεδομένα) -->
+    <!-- TABS -->
     <div id="view-todayPlan" class="block"><div id="todayContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div></div>
     <div id="view-fullTimeline" class="hidden">
         <div class="glass-card p-6 rounded-2xl">
@@ -74,24 +74,15 @@
     </div>
 
     <script>
-        // ==========================================
-        // 1. --- ΒΑΛΕ ΕΔΩ ΤΟ ΔΙΚΟ ΣΟΥ FIREBASE CONFIG ---
-      const firebaseConfig = {
-  apiKey: "AIzaSyAsSSsS8kZWikVY8U9K2vdSp1CdVfRdlL0",
-  authDomain: "absolute-plan.firebaseapp.com",
-  projectId: "absolute-plan",
-  storageBucket: "absolute-plan.firebasestorage.app",
-  messagingSenderId: "304069700205",
-  appId: "1:304069700205:web:fa80ac0a83e7e0f7d4ad64"
+        // Το δικό σου Firebase Config
         const firebaseConfig = {
-            apiKey: "ΒΑΛΕ_ΤΟ_ΔΙΚΟ_ΣΟΥ_ΕΔΩ",
-            authDomain: "...",
-            projectId: "...",
-            storageBucket: "...",
-            messagingSenderId: "...",
-            appId: "..."
+            apiKey: "AIzaSyAsSSsS8kZWikVY8U9K2vdSp1CdVfRdlL0",
+            authDomain: "absolute-plan.firebaseapp.com",
+            projectId: "absolute-plan",
+            storageBucket: "absolute-plan.firebasestorage.app",
+            messagingSenderId: "304069700205",
+            appId: "1:304069700205:web:fa80ac0a83e7e0f7d4ad64"
         };
-        // ==========================================
 
         // Αρχικοποίηση Firebase
         firebase.initializeApp(firebaseConfig);
@@ -100,7 +91,7 @@
 
         let courses = [];
 
-        // Real-time Cloud Sync! (Ακούει τις αλλαγές live)
+        // Real-time Cloud Sync
         docRef.onSnapshot((doc) => {
             if (doc.exists) {
                 courses = doc.data().courses || [];
@@ -122,11 +113,10 @@
             document.getElementById('sync-status').className = 'ml-2 text-yellow-400 text-xs font-bold';
             
             docRef.set({ courses: courses }).catch(error => {
-                alert("Σφάλμα αποθήκευσης στο Cloud!");
+                alert("Σφάλμα αποθήκευσης στο Cloud! Έλεγξε τα rules του Firestore.");
             });
         }
 
-        // Η υπόλοιπη λογική (Ίδια ακριβώς)
         function switchTab(tabId) {
             ['todayPlan', 'fullTimeline', 'examSchedule', 'courseDetails'].forEach(id => {
                 document.getElementById('view-' + id).classList.add('hidden');
