@@ -6,11 +6,8 @@
     <title>Absolute Plan | Cloud Sync Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Εισαγωγή Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
-
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
@@ -21,14 +18,13 @@
 </head>
 <body class="p-4 md:p-8 min-h-screen max-w-5xl mx-auto">
 
-    <!-- Header με ένδειξη συγχρονισμού -->
     <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
                 <i class="fa-solid fa-bolt mr-2 text-blue-400"></i>Absolute Plan
             </h1>
             <p class="text-slate-400 mt-2 text-sm">
-                Δυναμικός Προγραμματισμός <span id="sync-status" class="ml-2 text-yellow-400"><i class="fa-solid fa-spinner fa-spin"></i> Φόρτωση Cloud...</span>
+                Έξυπνος Προγραμματισμός <span id="sync-status" class="ml-2 text-yellow-400"><i class="fa-solid fa-spinner fa-spin"></i> Φόρτωση...</span>
             </p>
         </div>
         <button onclick="toggleModal('addCourseModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 text-sm">
@@ -36,25 +32,45 @@
         </button>
     </header>
 
-    <!-- Navigation Tabs -->
     <div class="flex border-b border-slate-700 mb-6 overflow-x-auto">
-        <button onclick="switchTab('todayPlan')" id="tab-todayPlan" class="px-4 py-3 font-medium text-sm tab-active whitespace-nowrap"><i class="fa-solid fa-calendar-day mr-2"></i>Τι κάνω Σήμερα</button>
+        <button onclick="switchTab('todayPlan')" id="tab-todayPlan" class="px-4 py-3 font-medium text-sm tab-active whitespace-nowrap"><i class="fa-solid fa-calendar-day mr-2"></i>Σημερινός Στόχος</button>
         <button onclick="switchTab('fullTimeline')" id="tab-fullTimeline" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-route mr-2"></i>Πλάνο έως Εξετάσεις</button>
-        <button onclick="switchTab('examSchedule')" id="tab-examSchedule" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-regular fa-calendar-days mr-2"></i>Πρόγραμμα Εξετάσεων</button>
-        <button onclick="switchTab('courseDetails')" id="tab-courseDetails" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>Μαθήματα & Σημειώσεις</button>
+        <button onclick="switchTab('examSchedule')" id="tab-examSchedule" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-regular fa-calendar-days mr-2"></i>Πρόγραμμα</button>
+        <button onclick="switchTab('courseDetails')" id="tab-courseDetails" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>Σημειώσεις</button>
     </div>
 
-    <!-- TABS -->
-    <div id="view-todayPlan" class="block"><div id="todayContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div></div>
+    <!-- TAB: Σημερινός Στόχος -->
+    <div id="view-todayPlan" class="block">
+        <!-- Εδώ ορίζει ο χρήστης τις συνολικές ώρες της ημέρας -->
+        <div class="glass-card p-5 rounded-2xl mb-6 flex flex-col md:flex-row justify-between items-center border-blue-500/30 border bg-slate-800/50">
+            <div>
+                <h3 class="font-bold text-white text-lg"><i class="fa-solid fa-battery-three-quarters text-blue-400 mr-2"></i>Διαθέσιμος Χρόνος Σήμερα</h3>
+                <p class="text-sm text-slate-400">Επίλεξε πόσες ώρες <strong>συνολικά</strong> σκοπεύεις να διαβάσεις. Ο αλγόριθμος θα επιλέξει τα πιο SOS μαθήματα για να γεμίσει αυτόν τον χρόνο.</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center gap-3">
+                <input type="number" id="dailyCapacity" value="4" min="1" max="14" class="w-20 bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-xl font-bold text-white focus:border-blue-500 outline-none" onchange="updateCapacity(this.value)">
+                <span class="text-slate-400 font-medium">ώρες / μέρα</span>
+            </div>
+        </div>
+        
+        <div id="todayContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </div>
+    
+    <!-- TAB: Πλάνο Timeline -->
     <div id="view-fullTimeline" class="hidden">
         <div class="glass-card p-6 rounded-2xl">
-            <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-timeline mr-2 text-blue-400"></i>Ημερήσια Πρόβλεψη Μελέτης</h2>
+            <h2 class="text-xl font-bold mb-2"><i class="fa-solid fa-timeline mr-2 text-blue-400"></i>Προβολή Προγράμματος</h2>
+            <p class="text-sm text-slate-400 mb-6">Δες πώς κατανέμονται τα μαθήματα στις επόμενες μέρες, με βάση το όριο ωρών που έθεσες, μέχρι να καλυφθεί η ύλη.</p>
             <div id="timelineContainer" class="space-y-4"></div>
         </div>
     </div>
+    
+    <!-- TAB: Εξετάσεις -->
     <div id="view-examSchedule" class="hidden">
         <div class="glass-card rounded-2xl overflow-hidden"><div id="scheduleContainer" class="divide-y divide-slate-700/50"></div></div>
     </div>
+    
+    <!-- TAB: Σημειώσεις -->
     <div id="view-courseDetails" class="hidden"><div id="coursesContainer" class="grid grid-cols-1 gap-6"></div></div>
 
     <!-- Modal Προσθήκης -->
@@ -67,14 +83,13 @@
             <form onsubmit="addCourse(event)" class="space-y-4">
                 <input type="text" id="cName" placeholder="Όνομα Μαθήματος" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white">
                 <input type="date" id="cDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white">
-                <input type="number" id="cHours" placeholder="Απαιτούμενες Ώρες (Συνολικά)" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white">
+                <input type="number" id="cHours" placeholder="Εκτιμώμενες Συνολικές Ώρες Ύλης (π.χ. 30)" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white">
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 transition">Αποθήκευση</button>
             </form>
         </div>
     </div>
 
     <script>
-        // Το δικό σου Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAsSSsS8kZWikVY8U9K2vdSp1CdVfRdlL0",
             authDomain: "absolute-plan.firebaseapp.com",
@@ -84,17 +99,22 @@
             appId: "1:304069700205:web:fa80ac0a83e7e0f7d4ad64"
         };
 
-        // Αρχικοποίηση Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const docRef = db.collection("appData").doc("my_absolute_plan");
-
+        
         let courses = [];
+        let globalCapacity = 4;
+        let generatedSchedule = {}; 
 
-        // Real-time Cloud Sync
         docRef.onSnapshot((doc) => {
             if (doc.exists) {
-                courses = doc.data().courses || [];
+                let data = doc.data();
+                courses = data.courses || [];
+                if (data.dailyCapacity) {
+                    globalCapacity = data.dailyCapacity;
+                    document.getElementById('dailyCapacity').value = globalCapacity;
+                }
             } else {
                 courses = [];
             }
@@ -102,19 +122,22 @@
             document.getElementById('sync-status').className = 'ml-2 text-emerald-400 text-xs font-bold';
             refreshAllViews();
         }, (error) => {
-            console.error("Σφάλμα σύνδεσης:", error);
+            console.error(error);
             document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Σφάλμα';
             document.getElementById('sync-status').className = 'ml-2 text-red-400 text-xs font-bold';
         });
 
-        // Αποθήκευση στο Cloud
-        function saveCourses() {
-            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Αποθήκευση...';
-            document.getElementById('sync-status').className = 'ml-2 text-yellow-400 text-xs font-bold';
-            
-            docRef.set({ courses: courses }).catch(error => {
-                alert("Σφάλμα αποθήκευσης στο Cloud! Έλεγξε τα rules του Firestore.");
+        function saveToCloud() {
+            docRef.set({ 
+                courses: courses,
+                dailyCapacity: parseFloat(document.getElementById('dailyCapacity').value) || 4
             });
+        }
+
+        function updateCapacity(val) {
+            globalCapacity = parseFloat(val) || 4;
+            saveToCloud();
+            refreshAllViews();
         }
 
         function switchTab(tabId) {
@@ -130,13 +153,6 @@
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
-        function getDaysLeft(examDateStr) {
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const exam = new Date(examDateStr);
-            return Math.max(0, Math.ceil((exam.getTime() - today.getTime()) / (1000 * 3600 * 24)));
-        }
-
         function addCourse(e) {
             e.preventDefault();
             courses.push({
@@ -145,132 +161,173 @@
                 examDate: document.getElementById('cDate').value,
                 targetHours: parseFloat(document.getElementById('cHours').value),
                 hoursCompleted: 0,
-                readiness: 0,
                 notes: ""
             });
-            saveCourses();
+            saveToCloud();
             e.target.reset();
             toggleModal('addCourseModal');
         }
 
-        function updateField(id, field, value) {
-            const course = courses.find(c => c.id === id);
-            if(field === 'hoursCompleted') course.hoursCompleted += parseFloat(value);
-            else course[field] = value;
-            saveCourses();
+        function generateSmartSchedule() {
+            generatedSchedule = {};
+            let capacity = globalCapacity;
+            
+            let simCourses = courses.map(c => ({
+                ...c, 
+                remH: Math.max(0, c.targetHours - c.hoursCompleted)
+            })).filter(c => c.remH > 0);
+            
+            simCourses.sort((a,b) => new Date(a.examDate) - new Date(b.examDate));
+
+            let currentDate = new Date();
+            currentDate.setHours(0,0,0,0);
+            
+            for(let i=0; i<60; i++) {
+                let d = new Date(currentDate);
+                d.setDate(d.getDate() + i);
+                let dateStr = d.toISOString().split('T')[0];
+                generatedSchedule[dateStr] = [];
+                
+                let dailyAssigned = 0;
+
+                for(let c of simCourses) {
+                    let examD = new Date(c.examDate);
+                    if(d >= examD) continue;
+                    
+                    if(c.remH > 0 && dailyAssigned < capacity) {
+                        let available = capacity - dailyAssigned;
+                        let chunk = Math.min(c.remH, available, 3); 
+                        chunk = Math.round(chunk * 2) / 2;
+                        
+                        if(chunk <= 0) continue;
+
+                        c.remH -= chunk;
+                        dailyAssigned += chunk;
+                        generatedSchedule[dateStr].push({ id: c.id, name: c.name, hours: chunk });
+                    }
+                }
+                if (simCourses.every(c => c.remH <= 0)) break;
+            }
         }
 
         function renderTodayPlan() {
+            generateSmartSchedule();
             const container = document.getElementById('todayContainer');
             container.innerHTML = '';
-            if (courses.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">Πρόσθεσε μαθήματα για να ξεκινήσεις.</div>`; return;
-            }
-            courses.forEach(course => {
-                const daysLeft = getDaysLeft(course.examDate);
-                const remainingHours = Math.max(0, course.targetHours - course.hoursCompleted);
-                const dailyGoal = daysLeft > 0 ? (remainingHours / daysLeft).toFixed(1) : remainingHours.toFixed(1);
+            
+            let todayStr = new Date().toISOString().split('T')[0];
+            let todaysTasks = generatedSchedule[todayStr] || [];
 
-                if (remainingHours > 0) {
-                    container.innerHTML += `
-                        <div class="glass-card p-5 rounded-2xl border-l-4 ${daysLeft < 4 ? 'border-red-500' : 'border-blue-500'} flex flex-col justify-between">
-                            <div>
-                                <div class="flex justify-between items-start mb-2">
-                                    <h3 class="text-xl font-bold">${course.name}</h3>
-                                    <span class="bg-slate-800 text-xs px-2 py-1 rounded text-slate-300">Σε ${daysLeft} μέρες</span>
-                                </div>
-                                <div class="flex items-end gap-2 mb-6">
-                                    <span class="text-4xl font-black text-white">${dailyGoal}</span>
-                                    <span class="text-slate-400 mb-1">ώρες στόχος</span>
-                                </div>
+            if (todaysTasks.length === 0 && courses.length > 0) {
+                container.innerHTML = `<div class="col-span-full glass-card p-8 rounded-2xl text-center border-emerald-500/30 border">
+                    <i class="fa-solid fa-mug-hot text-4xl text-emerald-400 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white mb-1">Δεν έχεις διάβασμα σήμερα!</h3>
+                    <p class="text-slate-400">Είτε δεν έχεις βάλει αρκετές ώρες, είτε έχεις βγάλει ήδη την ύλη.</p>
+                </div>`; 
+                return;
+            } else if(courses.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">Πρόσθεσε μαθήματα για να βγει το πρόγραμμα.</div>`;
+                return;
+            }
+
+            todaysTasks.forEach(task => {
+                container.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-emerald-500 flex flex-col justify-between">
+                        <div class="mb-6">
+                            <h3 class="text-2xl font-bold text-white mb-1">${task.name}</h3>
+                            <div class="inline-block bg-slate-800 text-emerald-400 text-sm font-bold px-3 py-1 rounded-full mt-2">
+                                Προτεινόμενος Στόχος: ${task.hours} ώρες
                             </div>
-                            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-                                <label class="text-xs text-slate-400 block mb-2 uppercase">Καταγραφή Πραγματικών Ωρών</label>
-                                <div class="flex gap-2">
-                                    <input type="number" id="log-${course.id}" step="0.5" min="0.5" class="w-24 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white">
-                                    <button onclick="logHours(${course.id})" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">Καταγραφή</button>
-                                </div>
+                        </div>
+                        
+                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                            <label class="text-sm text-slate-300 block mb-3"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Πόσες ώρες διάβασες στην πραγματικότητα;</label>
+                            <div class="flex gap-3">
+                                <input type="number" id="log-${task.id}" step="0.5" min="0" placeholder="π.χ. 2.5" class="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-white text-lg font-bold outline-none focus:border-emerald-500 transition">
+                                <button onclick="logHours(${task.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 font-bold rounded-lg transition shadow-lg shadow-emerald-600/20">Αποθήκευση</button>
                             </div>
-                        </div>`;
-                }
+                            <p class="text-xs text-slate-500 mt-2">Άν βάλεις παραπάνω/λιγότερο, το αυριανό πρόγραμμα θα προσαρμοστεί αυτόματα.</p>
+                        </div>
+                    </div>`;
             });
         }
 
         function logHours(id) {
             const input = document.getElementById(`log-${id}`);
             const val = parseFloat(input.value);
-            if(val > 0) { updateField(id, 'hoursCompleted', val); input.value = ''; }
+            if(val >= 0) {
+                let course = courses.find(c => c.id === id);
+                course.hoursCompleted += val;
+                saveToCloud(); 
+                input.value = '';
+            }
         }
 
         function renderTimeline() {
             const container = document.getElementById('timelineContainer');
             container.innerHTML = '';
-            let html = "";
-            let currentDate = new Date();
-            currentDate.setHours(0,0,0,0);
+            
             const examDates = courses.map(c => new Date(c.examDate).getTime());
             if(examDates.length === 0) return;
             const lastExamDate = new Date(Math.max(...examDates));
 
+            let currentDate = new Date();
+            currentDate.setHours(0,0,0,0);
+
             while(currentDate <= lastExamDate) {
+                let dateStr = currentDate.toISOString().split('T')[0];
+                let isToday = currentDate.getTime() === new Date().setHours(0,0,0,0);
+                
                 let daySchedule = "";
+                let tasks = generatedSchedule[dateStr] || [];
+                
                 courses.forEach(c => {
-                    const examD = new Date(c.examDate);
-                    const daysUntilExam = Math.max(0, Math.ceil((examD - currentDate) / (1000 * 3600 * 24)));
-                    if (daysUntilExam === 0) {
-                        daySchedule += `<div class="text-red-400 font-bold text-sm bg-red-500/10 p-2 rounded mt-1">ΕΞΕΤΑΣΗ: ${c.name}</div>`;
-                    } else if (daysUntilExam > 0) {
-                        const remainingH = Math.max(0, c.targetHours - c.hoursCompleted);
-                        const daysL = getDaysLeft(c.examDate);
-                        const daily = daysL > 0 ? (remainingH / daysL).toFixed(1) : 0;
-                        if(daily > 0) daySchedule += `<div class="text-sm text-slate-300 mt-1 flex justify-between border-b border-slate-700/50 pb-1"><span>${c.name}</span> <span class="font-bold text-blue-400">${daily}h</span></div>`;
+                    let exD = new Date(c.examDate).toISOString().split('T')[0];
+                    if(exD === dateStr) {
+                        daySchedule += `<div class="text-red-400 font-bold text-sm bg-red-500/10 p-2 rounded mt-2 border border-red-500/20"><i class="fa-solid fa-circle-exclamation mr-2"></i>ΕΞΕΤΑΣΗ: ${c.name}</div>`;
                     }
                 });
 
+                tasks.forEach(t => {
+                    daySchedule += `<div class="text-sm text-slate-300 mt-2 flex justify-between items-center border-b border-slate-700/50 pb-2">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-emerald-500 mr-3"></span>${t.name}</span> 
+                        <span class="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">${t.hours}h</span>
+                    </div>`;
+                });
+
                 if (daySchedule !== "") {
-                    const isToday = currentDate.getTime() === new Date().setHours(0,0,0,0);
-                    html += `
-                        <div class="flex flex-col md:flex-row gap-4 p-4 ${isToday ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-slate-800/40'} rounded-xl">
-                            <div class="w-32 flex-shrink-0 text-slate-400 font-medium ${isToday ? 'text-blue-400' : ''}">
+                    container.innerHTML += `
+                        <div class="flex flex-col md:flex-row gap-4 p-4 ${isToday ? 'bg-slate-800 border-l-4 border-emerald-500' : 'bg-slate-800/40'} rounded-xl shadow-sm">
+                            <div class="w-32 flex-shrink-0 text-slate-400 font-medium ${isToday ? 'text-white' : ''}">
                                 ${currentDate.toLocaleDateString('el-GR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                ${isToday ? '<span class="text-xs block">ΣΗΜΕΡΑ</span>' : ''}
+                                ${isToday ? '<span class="text-[10px] uppercase font-black tracking-wider block mt-1 bg-emerald-600 text-white px-2 py-1 rounded-sm w-max">ΣΗΜΕΡΑ</span>' : ''}
                             </div>
                             <div class="flex-grow">${daySchedule}</div>
                         </div>`;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            container.innerHTML = html;
         }
 
         function renderExamSchedule() {
             const container = document.getElementById('scheduleContainer');
             container.innerHTML = '';
-            if (courses.length === 0) {
-                container.innerHTML = `<div class="p-6 text-center text-slate-500">Δεν υπάρχουν προγραμματισμένες εξετάσεις.</div>`;
-                return;
-            }
-            const sorted = [...courses].sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
-            sorted.forEach(course => {
-                const daysLeft = getDaysLeft(course.examDate);
-                const dateObj = new Date(course.examDate);
-                const isUrgent = daysLeft < 7;
+            if(courses.length === 0) return;
+            [...courses].sort((a,b) => new Date(a.examDate) - new Date(b.examDate)).forEach(course => {
+                let dLeft = Math.max(0, Math.ceil((new Date(course.examDate).getTime() - new Date().getTime()) / 86400000));
+                let dObj = new Date(course.examDate);
                 container.innerHTML += `
                     <div class="p-5 flex items-center justify-between hover:bg-slate-800/50 transition">
                         <div class="flex items-center gap-4">
-                            <div class="bg-slate-800 rounded-lg p-3 text-center min-w-[70px] border ${isUrgent ? 'border-red-500/50' : 'border-slate-700'}">
-                                <div class="text-xs text-slate-400 uppercase">${dateObj.toLocaleDateString('el-GR', { month: 'short' })}</div>
-                                <div class="text-xl font-bold text-white">${dateObj.getDate()}</div>
+                            <div class="bg-slate-800 rounded-lg p-3 text-center min-w-[70px] border ${dLeft<7?'border-red-500/50':'border-slate-700'}">
+                                <div class="text-xs text-slate-400 uppercase">${dObj.toLocaleDateString('el-GR', {month:'short'})}</div>
+                                <div class="text-xl font-bold text-white">${dObj.getDate()}</div>
                             </div>
-                            <div>
-                                <h4 class="font-bold text-lg text-slate-100">${course.name}</h4>
-                            </div>
+                            <h4 class="font-bold text-lg text-white">${course.name}</h4>
                         </div>
-                        <div class="text-right">
-                            <span class="${isUrgent ? 'text-red-400' : 'text-emerald-400'} font-semibold bg-slate-900/50 px-4 py-2 rounded-full text-sm">
-                                ${daysLeft === 0 ? 'ΣΗΜΕΡΑ!' : 'Σε ' + daysLeft + ' μέρες'}
-                            </span>
-                        </div>
+                        <span class="${dLeft<7?'text-red-400':'text-emerald-400'} bg-slate-900/50 px-4 py-2 rounded-full text-sm font-bold border border-slate-700">
+                            ${dLeft===0?'ΣΗΜΕΡΑ!':'Σε '+dLeft+' μέρες'}
+                        </span>
                     </div>`;
             });
         }
@@ -278,33 +335,25 @@
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
             container.innerHTML = '';
-            courses.forEach(course => {
-                const perc = course.targetHours > 0 ? Math.min(100, Math.round((course.hoursCompleted / course.targetHours) * 100)) : 0;
+            courses.forEach(c => {
+                let perc = c.targetHours > 0 ? Math.min(100, Math.round((c.hoursCompleted / c.targetHours) * 100)) : 0;
                 container.innerHTML += `
-                    <div class="glass-card p-6 rounded-2xl relative">
+                    <div class="glass-card p-6 rounded-2xl relative border border-slate-700/50">
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-2xl font-bold">${course.name}</h3>
-                            <button onclick="deleteCourse(${course.id})" class="text-slate-500 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
+                            <h3 class="text-xl font-bold text-white">${c.name}</h3>
+                            <button onclick="if(confirm('Σίγουρα διαγραφή;')){courses=courses.filter(x=>x.id!==${c.id});saveToCloud();}" class="text-slate-500 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <div class="mb-6">
-                            <div class="flex justify-between text-sm mb-1 text-slate-300">
-                                <span>Πρόοδος: ${course.hoursCompleted} / ${course.targetHours} Ώρες</span>
-                                <span>${perc}%</span>
-                            </div>
-                            <div class="w-full bg-slate-800 rounded-full h-3">
-                                <div class="bg-emerald-500 h-3 rounded-full" style="width: ${perc}%"></div>
-                            </div>
+                        <div class="mb-4 text-sm text-slate-400 flex justify-between">
+                            <span>Έχεις βγάλει: <span class="text-white font-bold">${c.hoursCompleted}h</span> / ${c.targetHours}h</span>
+                            <span class="text-emerald-400 font-bold">${perc}%</span>
                         </div>
-                        <div>
-                            <label class="text-sm text-slate-400 block mb-2"><i class="fa-solid fa-pen mr-1"></i>Προσωπικές Σημειώσεις</label>
-                            <textarea onchange="updateField(${course.id}, 'notes', this.value)" class="w-full h-24 bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder-slate-600" placeholder="Γράψε εδώ...">${course.notes || ''}</textarea>
+                        <div class="w-full bg-slate-900 rounded-full h-2.5 mb-6 overflow-hidden">
+                            <div class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2.5 rounded-full" style="width:${perc}%"></div>
                         </div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide"><i class="fa-solid fa-pen-nib mr-2"></i>Σημειώσεις Μαθήματος</label>
+                        <textarea onchange="let co=courses.find(x=>x.id===${c.id});co.notes=this.value;saveToCloud();" class="w-full h-24 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 outline-none focus:border-emerald-500 transition resize-none placeholder-slate-600" placeholder="SOS κεφάλαια, απορίες...">${c.notes||''}</textarea>
                     </div>`;
             });
-        }
-
-        function deleteCourse(id) {
-            if(confirm("Διαγραφή μαθήματος;")) { courses = courses.filter(c => c.id !== id); saveCourses(); }
         }
 
         function refreshAllViews() {
