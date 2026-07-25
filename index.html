@@ -3,77 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absolute Plan | Exam Tracker</title>
-    <!-- Εισαγωγή Tailwind CSS για πανέμορφο design -->
+    <title>Absolute Plan | Smart Scheduler</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        input[type=range] { accent-color: #3b82f6; }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen">
+<body class="p-4 md:p-8 min-h-screen max-w-5xl mx-auto">
 
-    <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <header class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                    <i class="fa-solid fa-bullseye mr-2 text-blue-400"></i>Absolute Plan
-                </h1>
-                <p class="text-slate-400 mt-2">Το απόλυτο εργαλείο για την εξεταστική του Σεπτεμβρίου</p>
-            </div>
-            <button onclick="document.getElementById('addCourseModal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full font-semibold transition shadow-lg shadow-blue-500/30">
-                <i class="fa-solid fa-plus mr-2"></i>Νέο Μάθημα
-            </button>
-        </header>
-
-        <!-- Περιοχή Εμφάνισης Μαθημάτων -->
-        <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Τα μαθήματα θα εμφανίζονται εδώ μέσω JavaScript -->
+    <!-- Header -->
+    <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                <i class="fa-solid fa-bullseye mr-2 text-blue-400"></i>Absolute Plan
+            </h1>
+            <p class="text-slate-400 mt-2 text-sm">A.I. Βασισμένος Προγραμματισμός Μελέτης</p>
         </div>
+        <button onclick="toggleModal('addCourseModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 text-sm">
+            <i class="fa-solid fa-plus mr-1"></i> Νέο Μάθημα
+        </button>
+    </header>
 
-        <!-- Φόρμα Προσθήκης Νέου Μαθήματος (Modal) -->
-        <div id="addCourseModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-            <div class="glass-card p-6 rounded-2xl w-full max-w-md">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Προσθήκη Μαθήματος</h2>
-                    <button onclick="document.getElementById('addCourseModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
-                
-                <form id="courseForm" onsubmit="addCourse(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-sm text-slate-400 mb-1">Όνομα Μαθήματος</label>
-                        <input type="text" id="cName" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm text-slate-400 mb-1">Ημ/νια Εξέτασης</label>
-                            <input type="date" id="cDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-slate-400 mb-1">Συνολικά Κεφάλαια/Ύλη</label>
-                            <input type="number" id="cChapters" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-slate-400 mb-1">Συνολικές Ώρες που απαιτούνται (Εκτίμηση)</label>
-                        <input type="number" id="cHours" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 transition">Αποθήκευση</button>
-                </form>
+    <!-- Navigation Tabs -->
+    <div class="flex border-b border-slate-700 mb-6 overflow-x-auto">
+        <button onclick="switchTab('smartPlan')" id="tab-smartPlan" class="px-4 py-3 font-medium text-sm tab-active whitespace-nowrap"><i class="fa-solid fa-brain mr-2"></i>Τι διαβάζω σήμερα</button>
+        <button onclick="switchTab('allCourses')" id="tab-allCourses" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book mr-2"></i>Ετοιμότητα Μαθημάτων</button>
+        <button onclick="switchTab('examSchedule')" id="tab-examSchedule" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-regular fa-calendar-days mr-2"></i>Πρόγραμμα Εξετάσεων</button>
+    </div>
+
+    <!-- Tab 1: Smart Plan (Τι διαβάζω σήμερα) -->
+    <div id="view-smartPlan" class="block">
+        <div class="glass-card p-5 rounded-2xl mb-6 flex flex-col md:flex-row justify-between items-center border-blue-500/30 border">
+            <div>
+                <h2 class="text-lg font-bold text-white mb-1">Διαθέσιμος Χρόνος Σήμερα</h2>
+                <p class="text-sm text-slate-400">Όρισε πόσες ώρες μπορείς να διαβάσεις σήμερα, και ο αλγόριθμος θα τις μοιράσει έξυπνα.</p>
             </div>
+            <div class="mt-4 md:mt-0 flex items-center gap-3">
+                <input type="number" id="dailyCapacity" value="6" min="1" max="16" class="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-center text-xl font-bold text-white" onchange="renderSmartPlan()">
+                <span class="text-slate-400">Ώρες</span>
+            </div>
+        </div>
+        <div id="smartPlanContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </div>
+
+    <!-- Tab 2: Ετοιμότητα Μαθημάτων -->
+    <div id="view-allCourses" class="hidden">
+        <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </div>
+
+    <!-- Tab 3: Πρόγραμμα Εξετάσεων -->
+    <div id="view-examSchedule" class="hidden">
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div id="scheduleContainer" class="divide-y divide-slate-700/50"></div>
         </div>
     </div>
 
-    <!-- JavaScript Λογική -->
+    <!-- Modal Προσθήκης -->
+    <div id="addCourseModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md border border-slate-600">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Προσθήκη Μαθήματος</h2>
+                <button onclick="toggleModal('addCourseModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="addCourse(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Όνομα Μαθήματος</label>
+                    <input type="text" id="cName" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Ημ/νια Εξέτασης</label>
+                    <input type="date" id="cDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Απαιτούμενες Ώρες (Συνολικά)</label>
+                    <input type="number" id="cHours" required min="1" placeholder="π.χ. 40" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                    <p class="text-xs text-slate-500 mt-1">Θα το βρίσκουμε μαζί μέσω AI.</p>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Τρέχουσα Ετοιμότητα (%)</label>
+                    <input type="number" id="cReadiness" required min="0" max="100" value="0" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 transition">Αποθήκευση</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
     <script>
-        // Φόρτωση δεδομένων από το Local Storage ή αρχικοποίηση άδειου πίνακα
-        let courses = JSON.parse(localStorage.getItem('absolute_plan_courses')) || [];
+        let courses = JSON.parse(localStorage.getItem('absolute_plan_courses_v2')) || [];
 
         function saveCourses() {
-            localStorage.setItem('absolute_plan_courses', JSON.stringify(courses));
-            renderCourses();
+            localStorage.setItem('absolute_plan_courses_v2', JSON.stringify(courses));
+            refreshAllViews();
+        }
+
+        function switchTab(tabId) {
+            ['smartPlan', 'allCourses', 'examSchedule'].forEach(id => {
+                document.getElementById('view-' + id).classList.add('hidden');
+                document.getElementById('tab-' + id).classList.remove('tab-active', 'text-blue-500');
+                document.getElementById('tab-' + id).classList.add('text-slate-400');
+            });
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('tab-active');
+            document.getElementById('tab-' + tabId).classList.remove('text-slate-400');
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
         }
 
         function addCourse(e) {
@@ -82,15 +123,13 @@
                 id: Date.now(),
                 name: document.getElementById('cName').value,
                 examDate: document.getElementById('cDate').value,
-                totalChapters: parseInt(document.getElementById('cChapters').value),
-                completedChapters: 0,
                 targetHours: parseInt(document.getElementById('cHours').value),
-                studiedHours: 0
+                readiness: parseInt(document.getElementById('cReadiness').value)
             };
             courses.push(newCourse);
             saveCourses();
-            document.getElementById('courseForm').reset();
-            document.getElementById('addCourseModal').classList.add('hidden');
+            e.target.reset();
+            toggleModal('addCourseModal');
         }
 
         function deleteCourse(id) {
@@ -100,82 +139,151 @@
             }
         }
 
-        function logProgress(id, type) {
+        function updateReadiness(id, value) {
             const course = courses.find(c => c.id === id);
-            if(type === 'chapter' && course.completedChapters < course.totalChapters) {
-                course.completedChapters++;
-            } else if (type === 'hour') {
-                course.studiedHours += 0.5; // Προσθέτει μισή ώρα κάθε φορά
-            }
+            course.readiness = parseInt(value);
+            document.getElementById(`readiness-val-${id}`).innerText = value + '%';
             saveCourses();
         }
 
-        function renderCourses() {
-            const container = document.getElementById('coursesContainer');
-            container.innerHTML = '';
+        function getDaysLeft(examDateStr) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const exam = new Date(examDateStr);
+            const diff = exam.getTime() - today.getTime();
+            return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
+        }
 
+        function renderSmartPlan() {
+            const container = document.getElementById('smartPlanContainer');
+            container.innerHTML = '';
+            
             if (courses.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 glass-card rounded-2xl"><i class="fa-solid fa-book-open text-4xl mb-3"></i><p>Δεν έχεις προσθέσει μαθήματα ακόμα. Πάτα το κουμπί "Νέο Μάθημα".</p></div>`;
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">Πρόσθεσε μαθήματα για να βγει το πρόγραμμα.</div>`;
                 return;
             }
 
-            courses.forEach(course => {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const exam = new Date(course.examDate);
-                const timeDiff = exam.getTime() - today.getTime();
-                const daysLeft = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
-
-                // Υπολογισμοί Προγράμματος
-                const hoursLeft = Math.max(0, course.targetHours - course.studiedHours);
-                const dailyHoursRequired = daysLeft > 0 ? (hoursLeft / daysLeft).toFixed(1) : hoursLeft;
-                const chapterProgress = Math.round((course.completedChapters / course.totalChapters) * 100);
-
-                const card = document.createElement('div');
-                card.className = 'glass-card p-6 rounded-2xl relative overflow-hidden group';
+            const dailyCapacity = parseFloat(document.getElementById('dailyCapacity').value) || 6;
+            
+            // Αλγόριθμος Υπολογισμού Βαρύτητας (Urgency)
+            let totalWeight = 0;
+            const courseWeights = courses.map(course => {
+                const daysLeft = getDaysLeft(course.examDate);
+                const hoursLeft = course.targetHours * ((100 - course.readiness) / 100);
                 
-                card.innerHTML = `
-                    <button onclick="deleteCourse(${course.id})" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
-                    
-                    <h3 class="text-xl font-bold mb-1 pr-6">${course.name}</h3>
-                    <p class="text-sm text-emerald-400 font-medium mb-4"><i class="fa-regular fa-calendar mr-1"></i>${exam.toLocaleDateString('el-GR')} (${daysLeft} μέρες έμειναν)</p>
-                    
-                    <div class="mb-4">
-                        <div class="flex justify-between text-sm text-slate-300 mb-1">
-                            <span>Πρόοδος Ύλης</span>
-                            <span>${course.completedChapters}/${course.totalChapters} (${chapterProgress}%)</span>
-                        </div>
-                        <div class="w-full bg-slate-800 rounded-full h-2">
-                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${chapterProgress}%"></div>
-                        </div>
-                    </div>
+                if (daysLeft === 0 || hoursLeft <= 0) return { ...course, weight: 0, hoursLeft, daysLeft };
+                
+                // Όσο λιγότερες οι μέρες, τόσο εκθετικά μεγαλύτερη η βαρύτητα.
+                const urgencyMultiplier = daysLeft < 4 ? 3 : (daysLeft < 8 ? 1.5 : 1);
+                const weight = (hoursLeft / daysLeft) * urgencyMultiplier;
+                
+                totalWeight += weight;
+                return { ...course, weight, hoursLeft, daysLeft };
+            });
 
-                    <div class="bg-slate-800/50 rounded-xl p-4 mb-4 flex justify-between items-center border border-slate-700">
-                        <div>
-                            <p class="text-xs text-slate-400">Στόχος Ημέρας</p>
-                            <p class="text-2xl font-bold text-white">${dailyHoursRequired} <span class="text-sm font-normal text-slate-400">ώρες</span></p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xs text-slate-400">Έχεις διαβάσει</p>
-                            <p class="text-lg font-bold text-slate-200">${course.studiedHours} <span class="text-xs text-slate-500">/ ${course.targetHours}h</span></p>
-                        </div>
-                    </div>
+            // Ταξινόμηση ώστε αυτά με τη μεγαλύτερη βαρύτητα να είναι πρώτα
+            courseWeights.sort((a, b) => b.weight - a.weight).forEach(course => {
+                if (course.weight === 0) return;
 
-                    <div class="flex gap-2">
-                        <button onclick="logProgress(${course.id}, 'hour')" class="flex-1 bg-slate-700 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition">
-                            <i class="fa-solid fa-clock mr-1"></i> +0.5 Ώρα
-                        </button>
-                        <button onclick="logProgress(${course.id}, 'chapter')" class="flex-1 bg-slate-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition ${course.completedChapters >= course.totalChapters ? 'opacity-50 cursor-not-allowed' : ''}">
-                            <i class="fa-solid fa-check mr-1"></i> 1 Κεφάλαιο
-                        </button>
+                // Κατανομή διαθέσιμου χρόνου
+                let allocatedHours = (course.weight / totalWeight) * dailyCapacity;
+                // Στρογγυλοποίηση σε μισάωρα (0.5)
+                allocatedHours = Math.round(allocatedHours * 2) / 2;
+                if(allocatedHours < 0.5) allocatedHours = 0; // Αν είναι πολύ μικρό, άστο
+
+                if(allocatedHours > 0) {
+                    container.innerHTML += `
+                        <div class="glass-card p-5 rounded-2xl border-l-4 ${course.daysLeft < 5 ? 'border-red-500' : 'border-blue-500'} relative group">
+                            <h3 class="text-xl font-bold mb-1">${course.name}</h3>
+                            <p class="text-xs text-slate-400 mb-4"><i class="fa-solid fa-clock text-slate-500 mr-1"></i>Υπολειπόμενες Ώρες Ύλης: ${course.hoursLeft.toFixed(1)}h</p>
+                            
+                            <div class="bg-slate-800/80 rounded-xl p-4 flex justify-between items-center">
+                                <div>
+                                    <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Προτεινομενη Μελετη</p>
+                                    <p class="text-3xl font-black text-white">${allocatedHours} <span class="text-sm font-normal text-slate-500">ώρες</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-block px-3 py-1 bg-slate-700 rounded-full text-xs font-medium text-slate-300">
+                                        Σε ${course.daysLeft} μέρες
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            if(container.innerHTML === '') {
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-emerald-400"><i class="fa-solid fa-check-circle text-4xl mb-2"></i><br>Είσαι έτοιμος! Δεν απαιτείται διάβασμα σήμερα βάσει των ποσοστών σου.</div>`;
+            }
+        }
+
+        function renderAllCourses() {
+            const container = document.getElementById('coursesContainer');
+            container.innerHTML = '';
+            
+            courses.forEach(course => {
+                const daysLeft = getDaysLeft(course.examDate);
+                container.innerHTML += `
+                    <div class="glass-card p-5 rounded-2xl relative group">
+                        <button onclick="deleteCourse(${course.id})" class="absolute top-4 right-4 text-slate-600 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
+                        <h3 class="text-lg font-bold pr-6 mb-4">${course.name}</h3>
+                        
+                        <div class="mb-2 flex justify-between items-end">
+                            <label class="text-sm text-slate-400">Ετοιμότητα</label>
+                            <span id="readiness-val-${course.id}" class="text-xl font-bold text-emerald-400">${course.readiness}%</span>
+                        </div>
+                        <input type="range" min="0" max="100" value="${course.readiness}" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" onchange="updateReadiness(${course.id}, this.value)">
+                        <div class="mt-4 text-xs text-slate-500 flex justify-between">
+                            <span>Στόχος: ${course.targetHours}h</span>
+                            <span>Εξέταση: ${new Date(course.examDate).toLocaleDateString('el-GR')}</span>
+                        </div>
                     </div>
                 `;
-                container.appendChild(card);
             });
         }
 
+        function renderExamSchedule() {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+            
+            const sorted = [...courses].sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+            
+            sorted.forEach(course => {
+                const daysLeft = getDaysLeft(course.examDate);
+                const dateObj = new Date(course.examDate);
+                const isUrgent = daysLeft < 7;
+                
+                container.innerHTML += `
+                    <div class="p-5 flex items-center justify-between hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-800 rounded-lg p-3 text-center min-w-[70px] border ${isUrgent ? 'border-red-500/50' : 'border-slate-700'}">
+                                <div class="text-xs text-slate-400 uppercase">${dateObj.toLocaleDateString('el-GR', { month: 'short' })}</div>
+                                <div class="text-xl font-bold text-white">${dateObj.getDate()}</div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-slate-100">${course.name}</h4>
+                                <p class="text-sm text-slate-400">Ετοιμότητα: ${course.readiness}%</p>
+                            </div>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <span class="${isUrgent ? 'text-red-400' : 'text-emerald-400'} font-semibold bg-slate-900/50 px-4 py-2 rounded-full text-sm">
+                                ${daysLeft === 0 ? 'ΣΗΜΕΡΑ!' : 'Σε ' + daysLeft + ' μέρες'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function refreshAllViews() {
+            renderSmartPlan();
+            renderAllCourses();
+            renderExamSchedule();
+        }
+
         // Αρχική φόρτωση
-        renderCourses();
+        refreshAllViews();
     </script>
 </body>
 </html>
