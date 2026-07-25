@@ -24,7 +24,7 @@
                 <i class="fa-solid fa-bolt mr-2 text-blue-400"></i>Absolute Plan
             </h1>
             <p class="text-slate-400 mt-2 text-sm">
-                Έξυπνος Προγραμματισμός <span id="sync-status" class="ml-2 text-yellow-400"><i class="fa-solid fa-spinner fa-spin"></i> Φόρτωση...</span>
+                Συμπαγής Προγραμματισμός <span id="sync-status" class="ml-2 text-yellow-400"><i class="fa-solid fa-spinner fa-spin"></i> Φόρτωση...</span>
             </p>
         </div>
         <button onclick="toggleModal('addCourseModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 text-sm">
@@ -41,11 +41,10 @@
 
     <!-- TAB: Σημερινός Στόχος -->
     <div id="view-todayPlan" class="block">
-        <!-- Εδώ ορίζει ο χρήστης τις συνολικές ώρες της ημέρας -->
         <div class="glass-card p-5 rounded-2xl mb-6 flex flex-col md:flex-row justify-between items-center border-blue-500/30 border bg-slate-800/50">
             <div>
                 <h3 class="font-bold text-white text-lg"><i class="fa-solid fa-battery-three-quarters text-blue-400 mr-2"></i>Διαθέσιμος Χρόνος Σήμερα</h3>
-                <p class="text-sm text-slate-400">Επίλεξε πόσες ώρες <strong>συνολικά</strong> σκοπεύεις να διαβάσεις. Ο αλγόριθμος θα επιλέξει τα πιο SOS μαθήματα για να γεμίσει αυτόν τον χρόνο.</p>
+                <p class="text-sm text-slate-400">Επίλεξε πόσες ώρες <strong>συνολικά</strong> σκοπεύεις να διαβάσεις. (Ο αλγόριθμος βάζει minimum 2ωρα blocks).</p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
                 <input type="number" id="dailyCapacity" value="4" min="1" max="14" class="w-20 bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-xl font-bold text-white focus:border-blue-500 outline-none" onchange="updateCapacity(this.value)">
@@ -60,7 +59,6 @@
     <div id="view-fullTimeline" class="hidden">
         <div class="glass-card p-6 rounded-2xl">
             <h2 class="text-xl font-bold mb-2"><i class="fa-solid fa-timeline mr-2 text-blue-400"></i>Προβολή Προγράμματος</h2>
-            <p class="text-sm text-slate-400 mb-6">Δες πώς κατανέμονται τα μαθήματα στις επόμενες μέρες, με βάση το όριο ωρών που έθεσες, μέχρι να καλυφθεί η ύλη.</p>
             <div id="timelineContainer" class="space-y-4"></div>
         </div>
     </div>
@@ -90,6 +88,7 @@
     </div>
 
     <script>
+        // Η ΔΙΚΗ ΣΟΥ ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ - ΔΕΝ ΠΕΙΡΑΖΕΙΣ ΤΙΠΟΤΑ ΕΔΩ
         const firebaseConfig = {
             apiKey: "AIzaSyAsSSsS8kZWikVY8U9K2vdSp1CdVfRdlL0",
             authDomain: "absolute-plan.firebaseapp.com",
@@ -194,17 +193,24 @@
                     let examD = new Date(c.examDate);
                     if(d >= examD) continue;
                     
-                    if(c.remH > 0 && dailyAssigned < capacity) {
-                        let available = capacity - dailyAssigned;
-                        let chunk = Math.min(c.remH, available, 3); 
-                        chunk = Math.round(chunk * 2) / 2;
-                        
-                        if(chunk <= 0) continue;
+                    let available = capacity - dailyAssigned;
+                    if(available <= 0) break;
+                    
+                    if (c.remH <= 0) continue;
 
-                        c.remH -= chunk;
-                        dailyAssigned += chunk;
-                        generatedSchedule[dateStr].push({ id: c.id, name: c.name, hours: chunk });
+                    let minBlock = 2; // Αυστηρός κανόνας των 2 ωρών
+                    let chunk = Math.min(c.remH, available);
+
+                    if (chunk < minBlock && c.remH > chunk) {
+                        continue; 
                     }
+
+                    chunk = Math.round(chunk * 2) / 2;
+                    if(chunk <= 0) continue;
+
+                    c.remH -= chunk;
+                    dailyAssigned += chunk;
+                    generatedSchedule[dateStr].push({ id: c.id, name: c.name, hours: chunk });
                 }
                 if (simCourses.every(c => c.remH <= 0)) break;
             }
@@ -222,7 +228,7 @@
                 container.innerHTML = `<div class="col-span-full glass-card p-8 rounded-2xl text-center border-emerald-500/30 border">
                     <i class="fa-solid fa-mug-hot text-4xl text-emerald-400 mb-3"></i>
                     <h3 class="text-xl font-bold text-white mb-1">Δεν έχεις διάβασμα σήμερα!</h3>
-                    <p class="text-slate-400">Είτε δεν έχεις βάλει αρκετές ώρες, είτε έχεις βγάλει ήδη την ύλη.</p>
+                    <p class="text-slate-400">Έχεις βγάλει την ύλη που υπολόγισες, οπότε ξεκουράσου.</p>
                 </div>`; 
                 return;
             } else if(courses.length === 0) {
@@ -246,7 +252,6 @@
                                 <input type="number" id="log-${task.id}" step="0.5" min="0" placeholder="π.χ. 2.5" class="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-3 text-white text-lg font-bold outline-none focus:border-emerald-500 transition">
                                 <button onclick="logHours(${task.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 font-bold rounded-lg transition shadow-lg shadow-emerald-600/20">Αποθήκευση</button>
                             </div>
-                            <p class="text-xs text-slate-500 mt-2">Άν βάλεις παραπάνω/λιγότερο, το αυριανό πρόγραμμα θα προσαρμοστεί αυτόματα.</p>
                         </div>
                     </div>`;
             });
