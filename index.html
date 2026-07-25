@@ -44,7 +44,7 @@
         <div class="glass-card p-5 rounded-2xl mb-6 flex flex-col md:flex-row justify-between items-center border-blue-500/30 border bg-slate-800/50">
             <div>
                 <h3 class="font-bold text-white text-lg"><i class="fa-solid fa-battery-three-quarters text-blue-400 mr-2"></i>Διαθέσιμος Χρόνος Σήμερα</h3>
-                <p class="text-sm text-slate-400">Επίλεξε πόσες ώρες <strong>συνολικά</strong> σκοπεύεις να διαβάσεις. (Ο αλγόριθμος βάζει minimum 2ωρα blocks).</p>
+                <p class="text-sm text-slate-400">Επίλεξε πόσες ώρες <strong>συνολικά</strong> σκοπεύεις να διαβάσεις. (Ο αλγόριθμος αποφεύγει τα 30λεπτα).</p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
                 <input type="number" id="dailyCapacity" value="4" min="1" max="14" class="w-20 bg-slate-900 border border-slate-600 rounded-lg p-3 text-center text-xl font-bold text-white focus:border-blue-500 outline-none" onchange="updateCapacity(this.value)">
@@ -198,10 +198,12 @@
                     
                     if (c.remH <= 0) continue;
 
-                    let minBlock = 2; // Αυστηρός κανόνας των 2 ωρών
                     let chunk = Math.min(c.remH, available);
 
-                    if (chunk < minBlock && c.remH > chunk) {
+                    // Αποτροπή "σπαστών" μικρών ωρών (π.χ. 30 λεπτά) 
+                    // ΜΟΝΟ αν έχουμε παραπάνω διαθέσιμο χρόνο στη μέρα μας.
+                    // Αν έχουμε δηλώσει π.χ. 1 ώρα τη μέρα, θα την πάρει κανονικά!
+                    if (chunk < 1 && c.remH > chunk && capacity >= 1) {
                         continue; 
                     }
 
