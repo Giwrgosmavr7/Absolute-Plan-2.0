@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absolute Plan | Exam Tracker</title>
+    <!-- Εισαγωγή Tailwind CSS για πανέμορφο design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    <i class="fa-solid fa-bullseye mr-2 text-blue-400"></i>Absolute Plan
+                </h1>
+                <p class="text-slate-400 mt-2">Το απόλυτο εργαλείο για την εξεταστική του Σεπτεμβρίου</p>
+            </div>
+            <button onclick="document.getElementById('addCourseModal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-full font-semibold transition shadow-lg shadow-blue-500/30">
+                <i class="fa-solid fa-plus mr-2"></i>Νέο Μάθημα
+            </button>
+        </header>
+
+        <!-- Περιοχή Εμφάνισης Μαθημάτων -->
+        <div id="coursesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Τα μαθήματα θα εμφανίζονται εδώ μέσω JavaScript -->
+        </div>
+
+        <!-- Φόρμα Προσθήκης Νέου Μαθήματος (Modal) -->
+        <div id="addCourseModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div class="glass-card p-6 rounded-2xl w-full max-w-md">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Προσθήκη Μαθήματος</h2>
+                    <button onclick="document.getElementById('addCourseModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <form id="courseForm" onsubmit="addCourse(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Όνομα Μαθήματος</label>
+                        <input type="text" id="cName" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Ημ/νια Εξέτασης</label>
+                            <input type="date" id="cDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">Συνολικά Κεφάλαια/Ύλη</label>
+                            <input type="number" id="cChapters" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Συνολικές Ώρες που απαιτούνται (Εκτίμηση)</label>
+                        <input type="number" id="cHours" required min="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-4 transition">Αποθήκευση</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Λογική -->
+    <script>
+        // Φόρτωση δεδομένων από το Local Storage ή αρχικοποίηση άδειου πίνακα
+        let courses = JSON.parse(localStorage.getItem('absolute_plan_courses')) || [];
+
+        function saveCourses() {
+            localStorage.setItem('absolute_plan_courses', JSON.stringify(courses));
+            renderCourses();
+        }
+
+        function addCourse(e) {
+            e.preventDefault();
+            const newCourse = {
+                id: Date.now(),
+                name: document.getElementById('cName').value,
+                examDate: document.getElementById('cDate').value,
+                totalChapters: parseInt(document.getElementById('cChapters').value),
+                completedChapters: 0,
+                targetHours: parseInt(document.getElementById('cHours').value),
+                studiedHours: 0
+            };
+            courses.push(newCourse);
+            saveCourses();
+            document.getElementById('courseForm').reset();
+            document.getElementById('addCourseModal').classList.add('hidden');
+        }
+
+        function deleteCourse(id) {
+            if(confirm("Σίγουρα θέλεις να διαγράψεις αυτό το μάθημα;")) {
+                courses = courses.filter(c => c.id !== id);
+                saveCourses();
+            }
+        }
+
+        function logProgress(id, type) {
+            const course = courses.find(c => c.id === id);
+            if(type === 'chapter' && course.completedChapters < course.totalChapters) {
+                course.completedChapters++;
+            } else if (type === 'hour') {
+                course.studiedHours += 0.5; // Προσθέτει μισή ώρα κάθε φορά
+            }
+            saveCourses();
+        }
+
+        function renderCourses() {
+            const container = document.getElementById('coursesContainer');
+            container.innerHTML = '';
+
+            if (courses.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 glass-card rounded-2xl"><i class="fa-solid fa-book-open text-4xl mb-3"></i><p>Δεν έχεις προσθέσει μαθήματα ακόμα. Πάτα το κουμπί "Νέο Μάθημα".</p></div>`;
+                return;
+            }
+
+            courses.forEach(course => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const exam = new Date(course.examDate);
+                const timeDiff = exam.getTime() - today.getTime();
+                const daysLeft = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+
+                // Υπολογισμοί Προγράμματος
+                const hoursLeft = Math.max(0, course.targetHours - course.studiedHours);
+                const dailyHoursRequired = daysLeft > 0 ? (hoursLeft / daysLeft).toFixed(1) : hoursLeft;
+                const chapterProgress = Math.round((course.completedChapters / course.totalChapters) * 100);
+
+                const card = document.createElement('div');
+                card.className = 'glass-card p-6 rounded-2xl relative overflow-hidden group';
+                
+                card.innerHTML = `
+                    <button onclick="deleteCourse(${course.id})" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
+                    
+                    <h3 class="text-xl font-bold mb-1 pr-6">${course.name}</h3>
+                    <p class="text-sm text-emerald-400 font-medium mb-4"><i class="fa-regular fa-calendar mr-1"></i>${exam.toLocaleDateString('el-GR')} (${daysLeft} μέρες έμειναν)</p>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-slate-300 mb-1">
+                            <span>Πρόοδος Ύλης</span>
+                            <span>${course.completedChapters}/${course.totalChapters} (${chapterProgress}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${chapterProgress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/50 rounded-xl p-4 mb-4 flex justify-between items-center border border-slate-700">
+                        <div>
+                            <p class="text-xs text-slate-400">Στόχος Ημέρας</p>
+                            <p class="text-2xl font-bold text-white">${dailyHoursRequired} <span class="text-sm font-normal text-slate-400">ώρες</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Έχεις διαβάσει</p>
+                            <p class="text-lg font-bold text-slate-200">${course.studiedHours} <span class="text-xs text-slate-500">/ ${course.targetHours}h</span></p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="logProgress(${course.id}, 'hour')" class="flex-1 bg-slate-700 hover:bg-blue-600 text-white text-sm py-2 rounded-lg transition">
+                            <i class="fa-solid fa-clock mr-1"></i> +0.5 Ώρα
+                        </button>
+                        <button onclick="logProgress(${course.id}, 'chapter')" class="flex-1 bg-slate-700 hover:bg-emerald-600 text-white text-sm py-2 rounded-lg transition ${course.completedChapters >= course.totalChapters ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fa-solid fa-check mr-1"></i> 1 Κεφάλαιο
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Αρχική φόρτωση
+        renderCourses();
+    </script>
+</body>
+</html>
