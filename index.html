@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absolute Plan | Pro Edition</title>
+    <title>Absolute Plan | Cloud Sync Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Εισαγωγή Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
@@ -16,13 +21,15 @@
 </head>
 <body class="p-4 md:p-8 min-h-screen max-w-5xl mx-auto">
 
-    <!-- Header -->
+    <!-- Header με ένδειξη συγχρονισμού -->
     <header class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
                 <i class="fa-solid fa-bolt mr-2 text-blue-400"></i>Absolute Plan
             </h1>
-            <p class="text-slate-400 mt-2 text-sm">Δυναμικός Προγραμματισμός & Σημειώσεις</p>
+            <p class="text-slate-400 mt-2 text-sm">
+                Δυναμικός Προγραμματισμός <span id="sync-status" class="ml-2 text-yellow-400"><i class="fa-solid fa-spinner fa-spin"></i> Φόρτωση Cloud...</span>
+            </p>
         </div>
         <button onclick="toggleModal('addCourseModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold transition shadow-lg shadow-blue-500/30 text-sm">
             <i class="fa-solid fa-plus mr-1"></i> Νέο Μάθημα
@@ -37,31 +44,18 @@
         <button onclick="switchTab('courseDetails')" id="tab-courseDetails" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>Μαθήματα & Σημειώσεις</button>
     </div>
 
-    <!-- Tab 1: Τι κάνω Σήμερα (Με Logging) -->
-    <div id="view-todayPlan" class="block">
-        <div id="todayContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
-    </div>
-
-    <!-- Tab 2: Πλάνο έως τις Εξετάσεις -->
+    <!-- TABS (όπως ήταν πριν, απλά περιμένουν τα δεδομένα) -->
+    <div id="view-todayPlan" class="block"><div id="todayContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div></div>
     <div id="view-fullTimeline" class="hidden">
         <div class="glass-card p-6 rounded-2xl">
             <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-timeline mr-2 text-blue-400"></i>Ημερήσια Πρόβλεψη Μελέτης</h2>
-            <p class="text-sm text-slate-400 mb-6">Το πλάνο αναπροσαρμόζεται αυτόματα ανάλογα με το τι καταγράφεις κάθε μέρα.</p>
             <div id="timelineContainer" class="space-y-4"></div>
         </div>
     </div>
-
-    <!-- Tab 3: Πρόγραμμα Εξετάσεων -->
     <div id="view-examSchedule" class="hidden">
-        <div class="glass-card rounded-2xl overflow-hidden">
-            <div id="scheduleContainer" class="divide-y divide-slate-700/50"></div>
-        </div>
+        <div class="glass-card rounded-2xl overflow-hidden"><div id="scheduleContainer" class="divide-y divide-slate-700/50"></div></div>
     </div>
-
-    <!-- Tab 4: Μαθήματα & Σημειώσεις -->
-    <div id="view-courseDetails" class="hidden">
-        <div id="coursesContainer" class="grid grid-cols-1 gap-6"></div>
-    </div>
+    <div id="view-courseDetails" class="hidden"><div id="coursesContainer" class="grid grid-cols-1 gap-6"></div></div>
 
     <!-- Modal Προσθήκης -->
     <div id="addCourseModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
@@ -80,13 +74,59 @@
     </div>
 
     <script>
-        let courses = JSON.parse(localStorage.getItem('absolute_plan_v3')) || [];
+        // ==========================================
+        // 1. --- ΒΑΛΕ ΕΔΩ ΤΟ ΔΙΚΟ ΣΟΥ FIREBASE CONFIG ---
+      const firebaseConfig = {
+  apiKey: "AIzaSyAsSSsS8kZWikVY8U9K2vdSp1CdVfRdlL0",
+  authDomain: "absolute-plan.firebaseapp.com",
+  projectId: "absolute-plan",
+  storageBucket: "absolute-plan.firebasestorage.app",
+  messagingSenderId: "304069700205",
+  appId: "1:304069700205:web:fa80ac0a83e7e0f7d4ad64"
+        const firebaseConfig = {
+            apiKey: "ΒΑΛΕ_ΤΟ_ΔΙΚΟ_ΣΟΥ_ΕΔΩ",
+            authDomain: "...",
+            projectId: "...",
+            storageBucket: "...",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+        // ==========================================
 
-        function saveCourses() {
-            localStorage.setItem('absolute_plan_v3', JSON.stringify(courses));
+        // Αρχικοποίηση Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const docRef = db.collection("appData").doc("my_absolute_plan");
+
+        let courses = [];
+
+        // Real-time Cloud Sync! (Ακούει τις αλλαγές live)
+        docRef.onSnapshot((doc) => {
+            if (doc.exists) {
+                courses = doc.data().courses || [];
+            } else {
+                courses = [];
+            }
+            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-cloud-check mr-1"></i> Συγχρονίστηκε';
+            document.getElementById('sync-status').className = 'ml-2 text-emerald-400 text-xs font-bold';
             refreshAllViews();
+        }, (error) => {
+            console.error("Σφάλμα σύνδεσης:", error);
+            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Σφάλμα';
+            document.getElementById('sync-status').className = 'ml-2 text-red-400 text-xs font-bold';
+        });
+
+        // Αποθήκευση στο Cloud
+        function saveCourses() {
+            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Αποθήκευση...';
+            document.getElementById('sync-status').className = 'ml-2 text-yellow-400 text-xs font-bold';
+            
+            docRef.set({ courses: courses }).catch(error => {
+                alert("Σφάλμα αποθήκευσης στο Cloud!");
+            });
         }
 
+        // Η υπόλοιπη λογική (Ίδια ακριβώς)
         function switchTab(tabId) {
             ['todayPlan', 'fullTimeline', 'examSchedule', 'courseDetails'].forEach(id => {
                 document.getElementById('view-' + id).classList.add('hidden');
@@ -130,15 +170,12 @@
             saveCourses();
         }
 
-        // --- TAB 1: Τι κάνω σήμερα ---
         function renderTodayPlan() {
             const container = document.getElementById('todayContainer');
             container.innerHTML = '';
-            
             if (courses.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">Πρόσθεσε μαθήματα για να ξεκινήσεις.</div>`; return;
             }
-
             courses.forEach(course => {
                 const daysLeft = getDaysLeft(course.examDate);
                 const remainingHours = Math.max(0, course.targetHours - course.hoursCompleted);
@@ -154,19 +191,17 @@
                                 </div>
                                 <div class="flex items-end gap-2 mb-6">
                                     <span class="text-4xl font-black text-white">${dailyGoal}</span>
-                                    <span class="text-slate-400 mb-1">ώρες στόχος για σήμερα</span>
+                                    <span class="text-slate-400 mb-1">ώρες στόχος</span>
                                 </div>
                             </div>
-                            
                             <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
                                 <label class="text-xs text-slate-400 block mb-2 uppercase">Καταγραφή Πραγματικών Ωρών</label>
                                 <div class="flex gap-2">
-                                    <input type="number" id="log-${course.id}" step="0.5" min="0.5" placeholder="π.χ. 2.5" class="w-24 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white">
-                                    <button onclick="logHours(${course.id})" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition">Καταγραφή</button>
+                                    <input type="number" id="log-${course.id}" step="0.5" min="0.5" class="w-24 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white">
+                                    <button onclick="logHours(${course.id})" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">Καταγραφή</button>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }
             });
         }
@@ -174,41 +209,31 @@
         function logHours(id) {
             const input = document.getElementById(`log-${id}`);
             const val = parseFloat(input.value);
-            if(val > 0) updateField(id, 'hoursCompleted', val);
+            if(val > 0) { updateField(id, 'hoursCompleted', val); input.value = ''; }
         }
 
-        // --- TAB 2: Full Timeline ---
         function renderTimeline() {
             const container = document.getElementById('timelineContainer');
             container.innerHTML = '';
-            
             let html = "";
             let currentDate = new Date();
             currentDate.setHours(0,0,0,0);
-            
             const examDates = courses.map(c => new Date(c.examDate).getTime());
             if(examDates.length === 0) return;
             const lastExamDate = new Date(Math.max(...examDates));
 
             while(currentDate <= lastExamDate) {
                 let daySchedule = "";
-
                 courses.forEach(c => {
                     const examD = new Date(c.examDate);
                     const daysUntilExam = Math.max(0, Math.ceil((examD - currentDate) / (1000 * 3600 * 24)));
-                    
                     if (daysUntilExam === 0) {
                         daySchedule += `<div class="text-red-400 font-bold text-sm bg-red-500/10 p-2 rounded mt-1">ΕΞΕΤΑΣΗ: ${c.name}</div>`;
                     } else if (daysUntilExam > 0) {
                         const remainingH = Math.max(0, c.targetHours - c.hoursCompleted);
                         const daysL = getDaysLeft(c.examDate);
                         const daily = daysL > 0 ? (remainingH / daysL).toFixed(1) : 0;
-                        
-                        if(daily > 0) {
-                            daySchedule += `<div class="text-sm text-slate-300 mt-1 flex justify-between border-b border-slate-700/50 pb-1">
-                                <span>${c.name}</span> <span class="font-bold text-blue-400">${daily}h</span>
-                            </div>`;
-                        }
+                        if(daily > 0) daySchedule += `<div class="text-sm text-slate-300 mt-1 flex justify-between border-b border-slate-700/50 pb-1"><span>${c.name}</span> <span class="font-bold text-blue-400">${daily}h</span></div>`;
                     }
                 });
 
@@ -221,31 +246,25 @@
                                 ${isToday ? '<span class="text-xs block">ΣΗΜΕΡΑ</span>' : ''}
                             </div>
                             <div class="flex-grow">${daySchedule}</div>
-                        </div>
-                    `;
+                        </div>`;
                 }
                 currentDate.setDate(currentDate.getDate() + 1);
             }
             container.innerHTML = html;
         }
 
-        // --- TAB 3: Πρόγραμμα Εξετάσεων (Αποκαταστάθηκε) ---
         function renderExamSchedule() {
             const container = document.getElementById('scheduleContainer');
             container.innerHTML = '';
-            
             if (courses.length === 0) {
                 container.innerHTML = `<div class="p-6 text-center text-slate-500">Δεν υπάρχουν προγραμματισμένες εξετάσεις.</div>`;
                 return;
             }
-
             const sorted = [...courses].sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
-            
             sorted.forEach(course => {
                 const daysLeft = getDaysLeft(course.examDate);
                 const dateObj = new Date(course.examDate);
                 const isUrgent = daysLeft < 7;
-                
                 container.innerHTML += `
                     <div class="p-5 flex items-center justify-between hover:bg-slate-800/50 transition">
                         <div class="flex items-center gap-4">
@@ -262,27 +281,21 @@
                                 ${daysLeft === 0 ? 'ΣΗΜΕΡΑ!' : 'Σε ' + daysLeft + ' μέρες'}
                             </span>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
-        // --- TAB 4: Μαθήματα & Σημειώσεις ---
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
             container.innerHTML = '';
-            
             courses.forEach(course => {
                 const perc = course.targetHours > 0 ? Math.min(100, Math.round((course.hoursCompleted / course.targetHours) * 100)) : 0;
-                
                 container.innerHTML += `
                     <div class="glass-card p-6 rounded-2xl relative">
                         <div class="flex justify-between items-start mb-4">
                             <h3 class="text-2xl font-bold">${course.name}</h3>
                             <button onclick="deleteCourse(${course.id})" class="text-slate-500 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        
-                        <!-- Progress Bar -->
                         <div class="mb-6">
                             <div class="flex justify-between text-sm mb-1 text-slate-300">
                                 <span>Πρόοδος: ${course.hoursCompleted} / ${course.targetHours} Ώρες</span>
@@ -292,14 +305,11 @@
                                 <div class="bg-emerald-500 h-3 rounded-full" style="width: ${perc}%"></div>
                             </div>
                         </div>
-
-                        <!-- Σημειώσεις -->
                         <div>
                             <label class="text-sm text-slate-400 block mb-2"><i class="fa-solid fa-pen mr-1"></i>Προσωπικές Σημειώσεις</label>
-                            <textarea onchange="updateField(${course.id}, 'notes', this.value)" class="w-full h-24 bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder-slate-600" placeholder="Γράψε εδώ τις σημειώσεις σου...">${course.notes}</textarea>
+                            <textarea onchange="updateField(${course.id}, 'notes', this.value)" class="w-full h-24 bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder-slate-600" placeholder="Γράψε εδώ...">${course.notes || ''}</textarea>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
@@ -313,8 +323,6 @@
             renderExamSchedule();
             renderCourses();
         }
-
-        refreshAllViews();
     </script>
 </body>
 </html>
