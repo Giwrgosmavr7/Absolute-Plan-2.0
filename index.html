@@ -33,6 +33,7 @@
     <div class="flex border-b border-slate-700 mb-6 overflow-x-auto">
         <button onclick="switchTab('todayPlan')" id="tab-todayPlan" class="px-4 py-3 font-medium text-sm tab-active whitespace-nowrap"><i class="fa-solid fa-calendar-day mr-2"></i>Τι κάνω Σήμερα</button>
         <button onclick="switchTab('fullTimeline')" id="tab-fullTimeline" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-route mr-2"></i>Πλάνο έως Εξετάσεις</button>
+        <button onclick="switchTab('examSchedule')" id="tab-examSchedule" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-regular fa-calendar-days mr-2"></i>Πρόγραμμα Εξετάσεων</button>
         <button onclick="switchTab('courseDetails')" id="tab-courseDetails" class="px-4 py-3 font-medium text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>Μαθήματα & Σημειώσεις</button>
     </div>
 
@@ -50,7 +51,14 @@
         </div>
     </div>
 
-    <!-- Tab 3: Μαθήματα & Σημειώσεις -->
+    <!-- Tab 3: Πρόγραμμα Εξετάσεων -->
+    <div id="view-examSchedule" class="hidden">
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div id="scheduleContainer" class="divide-y divide-slate-700/50"></div>
+        </div>
+    </div>
+
+    <!-- Tab 4: Μαθήματα & Σημειώσεις -->
     <div id="view-courseDetails" class="hidden">
         <div id="coursesContainer" class="grid grid-cols-1 gap-6"></div>
     </div>
@@ -72,7 +80,6 @@
     </div>
 
     <script>
-        // Δομή Δεδομένων
         let courses = JSON.parse(localStorage.getItem('absolute_plan_v3')) || [];
 
         function saveCourses() {
@@ -81,13 +88,14 @@
         }
 
         function switchTab(tabId) {
-            ['todayPlan', 'fullTimeline', 'courseDetails'].forEach(id => {
+            ['todayPlan', 'fullTimeline', 'examSchedule', 'courseDetails'].forEach(id => {
                 document.getElementById('view-' + id).classList.add('hidden');
                 document.getElementById('tab-' + id).classList.remove('tab-active', 'text-blue-500');
                 document.getElementById('tab-' + id).classList.add('text-slate-400');
             });
             document.getElementById('view-' + tabId).classList.remove('hidden');
             document.getElementById('tab-' + tabId).classList.add('tab-active');
+            document.getElementById('tab-' + tabId).classList.remove('text-slate-400');
         }
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
@@ -122,7 +130,7 @@
             saveCourses();
         }
 
-        // --- TAB 1: Τι κάνω σήμερα (Προσαρμογή & Καταγραφή) ---
+        // --- TAB 1: Τι κάνω σήμερα ---
         function renderTodayPlan() {
             const container = document.getElementById('todayContainer');
             container.innerHTML = '';
@@ -166,9 +174,7 @@
         function logHours(id) {
             const input = document.getElementById(`log-${id}`);
             const val = parseFloat(input.value);
-            if(val > 0) {
-                updateField(id, 'hoursCompleted', val);
-            }
+            if(val > 0) updateField(id, 'hoursCompleted', val);
         }
 
         // --- TAB 2: Full Timeline ---
@@ -180,25 +186,20 @@
             let currentDate = new Date();
             currentDate.setHours(0,0,0,0);
             
-            // Βρίσκουμε την τελευταία εξέταση
             const examDates = courses.map(c => new Date(c.examDate).getTime());
             if(examDates.length === 0) return;
             const lastExamDate = new Date(Math.max(...examDates));
 
-            // Γεννάμε τις μέρες
             while(currentDate <= lastExamDate) {
                 let daySchedule = "";
-                let hasExamsToday = false;
 
                 courses.forEach(c => {
                     const examD = new Date(c.examDate);
                     const daysUntilExam = Math.max(0, Math.ceil((examD - currentDate) / (1000 * 3600 * 24)));
                     
                     if (daysUntilExam === 0) {
-                        hasExamsToday = true;
                         daySchedule += `<div class="text-red-400 font-bold text-sm bg-red-500/10 p-2 rounded mt-1">ΕΞΕΤΑΣΗ: ${c.name}</div>`;
                     } else if (daysUntilExam > 0) {
-                        // Υπολογισμός projection (πόσες ώρες θα χρειάζονται ανά μέρα)
                         const remainingH = Math.max(0, c.targetHours - c.hoursCompleted);
                         const daysL = getDaysLeft(c.examDate);
                         const daily = daysL > 0 ? (remainingH / daysL).toFixed(1) : 0;
@@ -228,7 +229,45 @@
             container.innerHTML = html;
         }
 
-        // --- TAB 3: Μαθήματα & Σημειώσεις ---
+        // --- TAB 3: Πρόγραμμα Εξετάσεων (Αποκαταστάθηκε) ---
+        function renderExamSchedule() {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+            
+            if (courses.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500">Δεν υπάρχουν προγραμματισμένες εξετάσεις.</div>`;
+                return;
+            }
+
+            const sorted = [...courses].sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+            
+            sorted.forEach(course => {
+                const daysLeft = getDaysLeft(course.examDate);
+                const dateObj = new Date(course.examDate);
+                const isUrgent = daysLeft < 7;
+                
+                container.innerHTML += `
+                    <div class="p-5 flex items-center justify-between hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-800 rounded-lg p-3 text-center min-w-[70px] border ${isUrgent ? 'border-red-500/50' : 'border-slate-700'}">
+                                <div class="text-xs text-slate-400 uppercase">${dateObj.toLocaleDateString('el-GR', { month: 'short' })}</div>
+                                <div class="text-xl font-bold text-white">${dateObj.getDate()}</div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-slate-100">${course.name}</h4>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="${isUrgent ? 'text-red-400' : 'text-emerald-400'} font-semibold bg-slate-900/50 px-4 py-2 rounded-full text-sm">
+                                ${daysLeft === 0 ? 'ΣΗΜΕΡΑ!' : 'Σε ' + daysLeft + ' μέρες'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- TAB 4: Μαθήματα & Σημειώσεις ---
         function renderCourses() {
             const container = document.getElementById('coursesContainer');
             container.innerHTML = '';
@@ -256,7 +295,7 @@
 
                         <!-- Σημειώσεις -->
                         <div>
-                            <label class="text-sm text-slate-400 block mb-2"><i class="fa-solid fa-pen mr-1"></i>Προσωπικές Σημειώσεις (SOS, Απορίες κλπ)</label>
+                            <label class="text-sm text-slate-400 block mb-2"><i class="fa-solid fa-pen mr-1"></i>Προσωπικές Σημειώσεις</label>
                             <textarea onchange="updateField(${course.id}, 'notes', this.value)" class="w-full h-24 bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder-slate-600" placeholder="Γράψε εδώ τις σημειώσεις σου...">${course.notes}</textarea>
                         </div>
                     </div>
@@ -271,6 +310,7 @@
         function refreshAllViews() {
             renderTodayPlan();
             renderTimeline();
+            renderExamSchedule();
             renderCourses();
         }
 
